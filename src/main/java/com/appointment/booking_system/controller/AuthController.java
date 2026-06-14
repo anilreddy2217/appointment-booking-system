@@ -26,4 +26,12 @@ public class AuthController {
         User user = userService.registerUser(name, email, password, Role.valueOf(role));
         return ResponseEntity.ok("User registered successfully: " + user.getName());
     }
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String password = request.get("password");
+
+        String token = userService.loginUser(email, password);
+        return ResponseEntity.ok(Map.of("token", token));
+    }
 }

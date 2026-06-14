@@ -3,12 +3,16 @@ package com.appointment.booking_system.service;
 import com.appointment.booking_system.model.Role;
 import com.appointment.booking_system.model.User;
 import com.appointment.booking_system.repository.UserRepository;
+import com.appointment.booking_system.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class UserService {
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @Autowired
     private UserRepository userRepository;
@@ -26,5 +30,15 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(password));
         user.setRole(role);
         return userRepository.save(user);
+    }
+    public String loginUser(String email, String password) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found!"));
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("Invalid password!");
+        }
+
+        return jwtUtil.generateToken(user.getEmail(), user.getRole().name());
     }
 }
