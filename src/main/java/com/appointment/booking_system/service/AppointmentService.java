@@ -19,6 +19,9 @@ public class AppointmentService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private EmailService emailService;
+
     public Appointment bookAppointment(Long patientId, Long slotId, String notes) {
         User patient = userRepository.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient not found!"));
@@ -39,7 +42,17 @@ public class AppointmentService {
         appointment.setStatus(AppointmentStatus.BOOKED);
         appointment.setNotes(notes);
 
-        return appointmentRepository.save(appointment);
+        Appointment saved = appointmentRepository.save(appointment);
+
+        // Send confirmation email
+        emailService.sendBookingConfirmation(
+                patient.getEmail(),
+                patient.getName(),
+                slot.getProvider().getUser().getName(),
+                slot.getStartTime().toString()
+        );
+
+        return saved;
     }
 
     public Appointment cancelAppointment(Long appointmentId) {
@@ -52,7 +65,16 @@ public class AppointmentService {
         slot.setStatus(SlotStatus.AVAILABLE);
         slotRepository.save(slot);
 
-        return appointmentRepository.save(appointment);
+        Appointment saved = appointmentRepository.save(appointment);
+
+        // Send cancellation email
+        emailService.sendCancellationEmail(
+                appointment.getPatient().getEmail(),
+                appointment.getPatient().getName(),
+                slot.getStartTime().toString()
+        );
+
+        return saved;
     }
 
     public List<Appointment> getMyAppointments(Long patientId) {
