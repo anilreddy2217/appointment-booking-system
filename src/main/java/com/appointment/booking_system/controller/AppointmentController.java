@@ -5,6 +5,8 @@ import com.appointment.booking_system.service.AppointmentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.appointment.booking_system.repository.AppointmentRepository;
+import com.appointment.booking_system.service.PdfService;
 
 import java.util.List;
 import java.util.Map;
@@ -12,6 +14,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/appointments")
 public class AppointmentController {
+
+    @Autowired
+    private PdfService pdfService;
+
+    @Autowired
+    private AppointmentRepository appointmentRepository;
 
     @Autowired
     private AppointmentService appointmentService;
@@ -42,5 +50,17 @@ public class AppointmentController {
     public ResponseEntity<List<Appointment>> getProviderAppointments(@PathVariable Long providerId) {
         List<Appointment> appointments = appointmentService.getProviderAppointments(providerId);
         return ResponseEntity.ok(appointments);
+    }
+    @GetMapping("/receipt/{appointmentId}")
+    public ResponseEntity<byte[]> downloadReceipt(@PathVariable Long appointmentId) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new RuntimeException("Appointment not found!"));
+
+        byte[] pdf = pdfService.generateAppointmentReceipt(appointment);
+
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=appointment-receipt-" + appointmentId + ".pdf")
+                .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
+                .body(pdf);
     }
 }
