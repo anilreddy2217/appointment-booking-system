@@ -43,4 +43,19 @@ public class EmailService {
         );
         mailSender.send(message);
     }
+    public void sendReminderEmail(String toEmail, String patientName, String appointmentTime) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(toEmail);
+        message.setSubject("Appointment Reminder - 24 Hours Notice");
+        message.setText(
+                "Dear " + patientName + ",\n\n" +
+                        "This is a friendly reminder that you have an appointment scheduled in 24 hours.\n\n" +
+                        "Date & Time: " + appointmentTime + "\n\n" +
+                        "Please make sure to arrive 10 minutes before your appointment.\n\n" +
+                        "If you need to cancel or reschedule, please do so as soon as possible.\n\n" +
+                        "Thank you,\n" +
+                        "Appointment Booking System"
+        );
+        mailSender.send(message);
+    }
 }
