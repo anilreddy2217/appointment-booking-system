@@ -1,5 +1,6 @@
 package com.appointment.booking_system.service;
 
+import java.util.List;
 import com.appointment.booking_system.model.Provider;
 import com.appointment.booking_system.model.User;
 import com.appointment.booking_system.repository.ProviderRepository;
@@ -40,5 +41,12 @@ public class ProviderService {
                 .orElseThrow(() -> new RuntimeException("User not found!"));
         return providerRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new RuntimeException("Provider profile not found!"));
+    }
+    public List<Provider> searchBySpecialty(String specialty) {
+        return providerRepository.findBySpecialtyContainingIgnoreCase(specialty);
+    }
+
+    public List<Provider> getAllProviders() {
+        return providerRepository.findAll();
     }
 }

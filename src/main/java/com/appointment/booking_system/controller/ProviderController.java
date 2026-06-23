@@ -1,5 +1,6 @@
 package com.appointment.booking_system.controller;
 
+import java.util.List;
 import com.appointment.booking_system.model.Provider;
 import com.appointment.booking_system.service.ProviderService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,5 +33,16 @@ public class ProviderController {
     public ResponseEntity<?> getProfile(@RequestParam String email) {
         Provider provider = providerService.getProfile(email);
         return ResponseEntity.ok(provider);
+    }
+    @GetMapping("/search")
+    public ResponseEntity<List<Provider>> searchProviders(@RequestParam String specialty) {
+        List<Provider> providers = providerService.searchBySpecialty(specialty);
+        return ResponseEntity.ok(providers);
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<Provider>> getAllProviders() {
+        List<Provider> providers = providerService.getAllProviders();
+        return ResponseEntity.ok(providers);
     }
 }
