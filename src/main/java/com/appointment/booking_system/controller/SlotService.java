@@ -48,4 +48,10 @@ public class SlotService {
     public List<Slot> getAllSlots(Long providerId) {
         return slotRepository.findByProviderId(providerId);
     }
+    public List<Slot> getSlotsByDate(Long providerId, LocalDateTime date) {
+        LocalDateTime startOfDay = date.toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+        return slotRepository.findByProviderIdAndStartTimeBetween(
+                providerId, startOfDay, endOfDay);
+    }
 }

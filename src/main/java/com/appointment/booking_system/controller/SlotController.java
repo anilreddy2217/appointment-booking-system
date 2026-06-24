@@ -38,4 +38,12 @@ public class SlotController {
         List<Slot> slots = slotService.getAllSlots(providerId);
         return ResponseEntity.ok(slots);
     }
+    @GetMapping("/filter/{providerId}")
+    public ResponseEntity<List<Slot>> getSlotsByDate(
+            @PathVariable Long providerId,
+            @RequestParam String date) {
+        LocalDateTime dateTime = LocalDateTime.parse(date + "T00:00:00");
+        List<Slot> slots = slotService.getSlotsByDate(providerId, dateTime);
+        return ResponseEntity.ok(slots);
+    }
 }
