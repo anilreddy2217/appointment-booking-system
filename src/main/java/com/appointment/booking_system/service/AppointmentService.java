@@ -84,4 +84,7 @@ public class AppointmentService {
     public List<Appointment> getProviderAppointments(Long providerId) {
         return appointmentRepository.findBySlotProviderId(providerId);
     }
+    public List<Appointment> getAllAppointments() {
+        return appointmentRepository.findAll();
+    }
 }

@@ -63,4 +63,9 @@ public class AppointmentController {
                 .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
                 .body(pdf);
     }
+    @GetMapping("/all")
+    public ResponseEntity<List<Appointment>> getAllAppointments() {
+        List<Appointment> appointments = appointmentService.getAllAppointments();
+        return ResponseEntity.ok(appointments);
+    }
 }

@@ -12,16 +12,17 @@ import java.util.Date;
 public class JwtUtil {
 
     private static final String SECRET = "appointment-booking-secret-key-2024-very-long-string";
-    private static final long EXPIRATION = 1000 * 60 * 60 * 24; // 24 hours
+    private static final long EXPIRATION = 1000 * 60 * 60 * 24;
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(SECRET.getBytes());
     }
 
-    public String generateToken(String email, String role) {
+    public String generateToken(String email, String role, Long userId) {
         return Jwts.builder()
                 .subject(email)
                 .claim("role", role)
+                .claim("userId", userId)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + EXPIRATION))
                 .signWith(getSigningKey())
