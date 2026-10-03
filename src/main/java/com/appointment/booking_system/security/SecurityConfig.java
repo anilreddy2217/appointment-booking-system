@@ -56,6 +56,19 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+
+                        .requestMatchers("/api/appointments/all").hasRole("ADMIN")
+
+                        .requestMatchers("/api/appointments/provider/**").hasAnyRole("PROVIDER", "ADMIN")
+
+                        .requestMatchers("/api/slots/create").hasAnyRole("PROVIDER", "ADMIN")
+
+                        .requestMatchers("/api/slots/all/**").hasAnyRole("PROVIDER", "ADMIN")
+
+                        .requestMatchers("/api/providers/profile").hasAnyRole("PROVIDER", "ADMIN")
+
+                        .requestMatchers("/api/appointments/book").hasRole("PATIENT")
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter,
