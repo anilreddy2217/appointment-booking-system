@@ -1,5 +1,9 @@
 package com.appointment.booking_system.controller;
 
+import com.appointment.booking_system.model.User;
+import com.appointment.booking_system.repository.UserRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.appointment.booking_system.model.Appointment;
 import com.appointment.booking_system.service.AppointmentService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,12 +12,16 @@ import org.springframework.web.bind.annotation.*;
 import com.appointment.booking_system.repository.AppointmentRepository;
 import com.appointment.booking_system.service.PdfService;
 
+
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/appointments")
 public class AppointmentController {
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private PdfService pdfService;
@@ -26,12 +34,24 @@ public class AppointmentController {
 
     @PostMapping("/book")
     public ResponseEntity<?> bookAppointment(@RequestBody Map<String, String> request) {
-        Long patientId = Long.parseLong(request.get("patientId"));
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String email = authentication.getName();
+
+        User patient = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Patient not found!"));
+
         Long slotId = Long.parseLong(request.get("slotId"));
         String notes = request.get("notes");
 
-        Appointment appointment = appointmentService.bookAppointment(patientId, slotId, notes);
-        return ResponseEntity.ok("Appointment booked successfully with ID: " + appointment.getId());
+        Appointment appointment =
+                appointmentService.bookAppointment(patient.getId(), slotId, notes);
+
+        return ResponseEntity.ok(
+                "Appointment booked successfully with ID: " + appointment.getId()
+        );
     }
 
     @PutMapping("/cancel/{appointmentId}")
