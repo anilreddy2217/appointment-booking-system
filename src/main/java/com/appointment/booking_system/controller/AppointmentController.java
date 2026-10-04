@@ -56,13 +56,40 @@ public class AppointmentController {
 
     @PutMapping("/cancel/{appointmentId}")
     public ResponseEntity<?> cancelAppointment(@PathVariable Long appointmentId) {
-        Appointment appointment = appointmentService.cancelAppointment(appointmentId);
-        return ResponseEntity.ok("Appointment cancelled successfully. Slot is now available again.");
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String email = authentication.getName();
+
+        User patient = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Patient not found!"));
+
+        Appointment appointment =
+                appointmentService.cancelAppointment(
+                        appointmentId,
+                        patient.getId()
+                );
+
+        return ResponseEntity.ok(
+                "Appointment cancelled successfully. Slot is now available again."
+        );
     }
 
-    @GetMapping("/my/{patientId}")
-    public ResponseEntity<List<Appointment>> getMyAppointments(@PathVariable Long patientId) {
-        List<Appointment> appointments = appointmentService.getMyAppointments(patientId);
+    @GetMapping("/my")
+    public ResponseEntity<List<Appointment>> getMyAppointments() {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String email = authentication.getName();
+
+        User patient = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Patient not found!"));
+
+        List<Appointment> appointments =
+                appointmentService.getMyAppointments(patient.getId());
+
         return ResponseEntity.ok(appointments);
     }
 
