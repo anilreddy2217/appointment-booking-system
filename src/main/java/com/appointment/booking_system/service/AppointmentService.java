@@ -28,8 +28,8 @@ public class AppointmentService {
         User patient = userRepository.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient not found!"));
 
-        Slot slot = slotRepository.findById(slotId)
-                .orElseThrow(() -> new RuntimeException("Slot not found!"));
+        Slot slot = slotRepository.findByIdForUpdate(slotId)
+                .orElseThrow(() -> new RuntimeException("Slot not found"));
 
         if (slot.getStatus() != SlotStatus.AVAILABLE) {
             throw new RuntimeException("Slot is not available!");
