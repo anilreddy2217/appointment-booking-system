@@ -4,6 +4,7 @@ import com.appointment.booking_system.model.*;
 import com.appointment.booking_system.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -22,6 +23,7 @@ public class AppointmentService {
     @Autowired
     private EmailService emailService;
 
+    @Transactional
     public Appointment bookAppointment(Long patientId, Long slotId, String notes) {
         User patient = userRepository.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient not found!"));
@@ -51,6 +53,7 @@ public class AppointmentService {
                 slot.getProvider().getUser().getName(),
                 slot.getStartTime().toString()
         );
+
 
         return saved;
     }
