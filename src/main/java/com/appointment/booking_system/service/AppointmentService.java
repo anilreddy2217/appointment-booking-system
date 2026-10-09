@@ -35,14 +35,16 @@ public class AppointmentService {
             throw new RuntimeException("Slot is not available!");
         }
 
-        slot.setStatus(SlotStatus.BOOKED);
-        slotRepository.save(slot);
+        Appointment appointment = appointmentRepository.findBySlotId(slotId)
+                .orElseGet(Appointment::new);
 
-        Appointment appointment = new Appointment();
         appointment.setPatient(patient);
         appointment.setSlot(slot);
         appointment.setStatus(AppointmentStatus.BOOKED);
         appointment.setNotes(notes);
+
+        slot.setStatus(SlotStatus.BOOKED);
+        slotRepository.save(slot);
 
         Appointment saved = appointmentRepository.save(appointment);
 
