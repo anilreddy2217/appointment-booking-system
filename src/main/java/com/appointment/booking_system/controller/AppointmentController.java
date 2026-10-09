@@ -32,8 +32,30 @@ public class AppointmentController {
     @Autowired
     private AppointmentService appointmentService;
 
+
     @PostMapping("/book")
     public ResponseEntity<?> bookAppointment(@RequestBody Map<String, String> request) {
+
+        if (request == null || request.get("slotId") == null
+                || request.get("slotId").isBlank()) {
+            return ResponseEntity.badRequest().body(
+                    Map.of("error", "slotId is required", "status", 400)
+            );
+        }
+
+        Long slotId;
+        try {
+            slotId = Long.parseLong(request.get("slotId"));
+            if (slotId <= 0) {
+                return ResponseEntity.badRequest().body(
+                        Map.of("error", "slotId must be a positive number", "status", 400)
+                );
+            }
+        } catch (NumberFormatException ex) {
+            return ResponseEntity.badRequest().body(
+                    Map.of("error", "slotId must be a valid number", "status", 400)
+            );
+        }
 
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
@@ -43,7 +65,6 @@ public class AppointmentController {
         User patient = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Patient not found!"));
 
-        Long slotId = Long.parseLong(request.get("slotId"));
         String notes = request.get("notes");
 
         Appointment appointment =
@@ -53,6 +74,7 @@ public class AppointmentController {
                 "Appointment booked successfully with ID: " + appointment.getId()
         );
     }
+
 
     @PutMapping("/cancel/{appointmentId}")
     public ResponseEntity<?> cancelAppointment(@PathVariable Long appointmentId) {
