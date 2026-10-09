@@ -61,9 +61,16 @@ public class AppointmentService {
     public Appointment cancelAppointment(Long appointmentId, Long patientId) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new RuntimeException("Appointment not found!"));
+
         if (!appointment.getPatient().getId().equals(patientId)) {
             throw new RuntimeException(
                     "You are not authorized to cancel this appointment!"
+            );
+        }
+
+        if (appointment.getStatus() != AppointmentStatus.BOOKED) {
+            throw new IllegalStateException(
+                    "Only booked appointments can be cancelled."
             );
         }
 
