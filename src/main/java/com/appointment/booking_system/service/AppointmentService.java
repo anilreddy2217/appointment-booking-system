@@ -5,6 +5,9 @@ import com.appointment.booking_system.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.appointment.booking_system.exception.AppointmentConflictException;
+import com.appointment.booking_system.exception.AppointmentForbiddenException;
+import com.appointment.booking_system.exception.ResourceNotFoundException;
 
 import java.util.List;
 
@@ -26,13 +29,15 @@ public class AppointmentService {
     @Transactional
     public Appointment bookAppointment(Long patientId, Long slotId, String notes) {
         User patient = userRepository.findById(patientId)
-                .orElseThrow(() -> new RuntimeException("Patient not found!"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Patient not found!"));
 
         Slot slot = slotRepository.findByIdForUpdate(slotId)
-                .orElseThrow(() -> new RuntimeException("Slot not found"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Slot not found"));
 
         if (slot.getStatus() != SlotStatus.AVAILABLE) {
-            throw new RuntimeException("Slot is not available!");
+            throw new AppointmentConflictException("Slot is not available!");
         }
 
         Appointment appointment = appointmentRepository.findBySlotId(slotId)
@@ -62,10 +67,11 @@ public class AppointmentService {
 
     public Appointment cancelAppointment(Long appointmentId, Long patientId) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new RuntimeException("Appointment not found!"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Appointment not found!"));
 
         if (!appointment.getPatient().getId().equals(patientId)) {
-            throw new RuntimeException(
+            throw new AppointmentForbiddenException(
                     "You are not authorized to cancel this appointment!"
             );
         }
