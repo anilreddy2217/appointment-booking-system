@@ -1,7 +1,9 @@
 package com.appointment.booking_system.controller;
 
+import com.appointment.booking_system.dto.AppointmentBookingRequest;
 import com.appointment.booking_system.model.User;
 import com.appointment.booking_system.repository.UserRepository;
+import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import com.appointment.booking_system.model.Appointment;
@@ -33,29 +35,10 @@ public class AppointmentController {
     private AppointmentService appointmentService;
 
 
+
     @PostMapping("/book")
-    public ResponseEntity<?> bookAppointment(@RequestBody Map<String, String> request) {
-
-        if (request == null || request.get("slotId") == null
-                || request.get("slotId").isBlank()) {
-            return ResponseEntity.badRequest().body(
-                    Map.of("error", "slotId is required", "status", 400)
-            );
-        }
-
-        Long slotId;
-        try {
-            slotId = Long.parseLong(request.get("slotId"));
-            if (slotId <= 0) {
-                return ResponseEntity.badRequest().body(
-                        Map.of("error", "slotId must be a positive number", "status", 400)
-                );
-            }
-        } catch (NumberFormatException ex) {
-            return ResponseEntity.badRequest().body(
-                    Map.of("error", "slotId must be a valid number", "status", 400)
-            );
-        }
+    public ResponseEntity<?> bookAppointment(
+            @Valid @RequestBody AppointmentBookingRequest request) {
 
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
@@ -65,15 +48,17 @@ public class AppointmentController {
         User patient = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Patient not found!"));
 
-        String notes = request.get("notes");
-
-        Appointment appointment =
-                appointmentService.bookAppointment(patient.getId(), slotId, notes);
+        Appointment appointment = appointmentService.bookAppointment(
+                patient.getId(),
+                request.getSlotId(),
+                request.getNotes()
+        );
 
         return ResponseEntity.ok(
                 "Appointment booked successfully with ID: " + appointment.getId()
         );
     }
+
 
 
     @PutMapping("/cancel/{appointmentId}")
