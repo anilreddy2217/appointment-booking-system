@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import java.util.List;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -228,4 +229,65 @@ class AppointmentServiceTest {
         verify(appointmentRepository, never()).save(any());
         verifyNoInteractions(slotRepository, emailService);
     }
+
+
+    @Test
+    void getMyAppointments_returnsAppointmentsForPatient() {
+        Appointment first = new Appointment();
+        first.setId(1L);
+
+        Appointment second = new Appointment();
+        second.setId(2L);
+
+        List<Appointment> expected = List.of(first, second);
+
+        when(appointmentRepository.findByPatientId(1L))
+                .thenReturn(expected);
+
+        List<Appointment> result =
+                appointmentService.getMyAppointments(1L);
+
+        assertEquals(2, result.size());
+        assertSame(expected, result);
+        verify(appointmentRepository).findByPatientId(1L);
+    }
+
+    @Test
+    void getProviderAppointments_returnsAppointmentsForProvider() {
+        Appointment appointment = new Appointment();
+        appointment.setId(10L);
+
+        List<Appointment> expected = List.of(appointment);
+
+        when(appointmentRepository.findBySlotProviderId(20L))
+                .thenReturn(expected);
+
+        List<Appointment> result =
+                appointmentService.getProviderAppointments(20L);
+
+        assertEquals(1, result.size());
+        assertSame(expected, result);
+        verify(appointmentRepository).findBySlotProviderId(20L);
+    }
+
+    @Test
+    void getAllAppointments_returnsAllAppointments() {
+        Appointment first = new Appointment();
+        first.setId(1L);
+
+        Appointment second = new Appointment();
+        second.setId(2L);
+
+        List<Appointment> expected = List.of(first, second);
+
+        when(appointmentRepository.findAll()).thenReturn(expected);
+
+        List<Appointment> result =
+                appointmentService.getAllAppointments();
+
+        assertEquals(2, result.size());
+        assertSame(expected, result);
+        verify(appointmentRepository).findAll();
+    }
+
 }
