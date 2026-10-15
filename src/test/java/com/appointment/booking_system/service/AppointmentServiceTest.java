@@ -290,4 +290,44 @@ class AppointmentServiceTest {
         verify(appointmentRepository).findAll();
     }
 
+
+    @Test
+    void getMyAppointments_whenPatientHasNoAppointments_returnsEmptyList() {
+        when(appointmentRepository.findByPatientId(1L))
+                .thenReturn(List.of());
+
+        List<Appointment> result =
+                appointmentService.getMyAppointments(1L);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        verify(appointmentRepository).findByPatientId(1L);
+    }
+
+    @Test
+    void getProviderAppointments_whenProviderHasNoAppointments_returnsEmptyList() {
+        when(appointmentRepository.findBySlotProviderId(20L))
+                .thenReturn(List.of());
+
+        List<Appointment> result =
+                appointmentService.getProviderAppointments(20L);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        verify(appointmentRepository).findBySlotProviderId(20L);
+    }
+
+    @Test
+    void getAllAppointments_whenNoAppointmentsExist_returnsEmptyList() {
+        when(appointmentRepository.findAll()).thenReturn(List.of());
+
+        List<Appointment> result =
+                appointmentService.getAllAppointments();
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        verify(appointmentRepository).findAll();
+    }
+
+
 }
