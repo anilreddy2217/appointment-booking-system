@@ -330,4 +330,27 @@ class AppointmentServiceTest {
     }
 
 
+
+    @Test
+    void cancelAppointment_whenCompleted_throwsIllegalState() {
+        Appointment appointment = new Appointment();
+        appointment.setId(50L);
+        appointment.setPatient(patient);
+        appointment.setSlot(slot);
+        appointment.setStatus(AppointmentStatus.COMPLETED);
+
+        when(appointmentRepository.findById(50L))
+                .thenReturn(Optional.of(appointment));
+
+        assertThrows(IllegalStateException.class,
+                () -> appointmentService.cancelAppointment(50L, 1L));
+
+        verify(appointmentRepository, never()).save(any());
+        verify(slotRepository, never()).save(any());
+        verifyNoInteractions(emailService);
+    }
+
+
+
+
 }
