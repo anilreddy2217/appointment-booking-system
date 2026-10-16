@@ -73,16 +73,29 @@ class GlobalExceptionHandlerTest {
         assertEquals("Invalid request", response.getBody().get("error"));
     }
 
+
     @Test
-    void unexpectedExceptionReturns500() {
+    void unexpectedExceptionReturns500WithoutExposingInternalDetails() {
         ResponseEntity<Map<String, Object>> response =
-                handler.handleException(new Exception("Internal error"));
+                handler.handleException(
+                        new Exception("Sensitive database connection details"));
 
         assertEquals(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 response.getStatusCode());
+
+        assertEquals(500, response.getBody().get("status"));
         assertEquals(
                 "Something went wrong!",
                 response.getBody().get("error"));
+
+        assertEquals(true, response.getBody().containsKey("timestamp"));
+
+        assertEquals(
+                false,
+                response.getBody().get("error")
+                        .toString()
+                        .contains("Sensitive database connection details"));
     }
+
 }
