@@ -1,5 +1,7 @@
 package com.appointment.booking_system.controller;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import com.appointment.booking_system.dto.AppointmentBookingRequest;
 import com.appointment.booking_system.model.User;
 import com.appointment.booking_system.repository.UserRepository;
@@ -105,18 +107,46 @@ public class AppointmentController {
         List<Appointment> appointments = appointmentService.getProviderAppointments(providerId);
         return ResponseEntity.ok(appointments);
     }
+
     @GetMapping("/receipt/{appointmentId}")
-    public ResponseEntity<byte[]> downloadReceipt(@PathVariable Long appointmentId) {
+    public ResponseEntity<byte[]> downloadReceipt(
+            @PathVariable Long appointmentId) {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String email = authentication.getName();
+
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Appointment not found"));
+
         Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new RuntimeException("Appointment not found!"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Appointment not found"));
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_ADMIN"));
+
+        boolean isOwner = appointment.getPatient().getId()
+                .equals(currentUser.getId());
+
+        if (!isOwner && !isAdmin) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Appointment not found");
+        }
 
         byte[] pdf = pdfService.generateAppointmentReceipt(appointment);
 
         return ResponseEntity.ok()
-                .header("Content-Disposition", "attachment; filename=appointment-receipt-" + appointmentId + ".pdf")
+                .header("Content-Disposition",
+                        "attachment; filename=appointment-receipt-"
+                                + appointmentId + ".pdf")
                 .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
                 .body(pdf);
     }
+
     @GetMapping("/all")
     public ResponseEntity<List<Appointment>> getAllAppointments() {
         List<Appointment> appointments = appointmentService.getAllAppointments();
