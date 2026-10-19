@@ -1,6 +1,8 @@
 
 package com.appointment.booking_system.controller;
 
+import com.appointment.booking_system.dto.AppointmentBookingRequest;
+import org.springframework.http.ResponseEntity;
 import com.appointment.booking_system.model.Appointment;
 import com.appointment.booking_system.model.User;
 import com.appointment.booking_system.repository.AppointmentRepository;
@@ -149,4 +151,92 @@ class AppointmentControllerTest {
         assertArrayEquals(expectedPdf, response.getBody());
         verify(pdfService).generateAppointmentReceipt(appointment);
     }
+
+
+    @Test
+    void bookAppointment_usesAuthenticatedPatientAndRequestDetails() {
+        authenticate("patient@example.com", "PATIENT");
+
+        User patient = new User();
+        patient.setId(1L);
+        patient.setEmail("patient@example.com");
+
+        Appointment appointment = new Appointment();
+        appointment.setId(100L);
+
+        AppointmentBookingRequest request = new AppointmentBookingRequest();
+        request.setSlotId(25L);
+        request.setNotes("Follow-up consultation");
+
+        when(userRepository.findByEmail("patient@example.com"))
+                .thenReturn(Optional.of(patient));
+
+        when(appointmentService.bookAppointment(
+                1L, 25L, "Follow-up consultation"))
+                .thenReturn(appointment);
+
+        ResponseEntity<?> response =
+                appointmentController.bookAppointment(request);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(
+                "Appointment booked successfully with ID: 100",
+                response.getBody());
+
+        verify(appointmentService).bookAppointment(
+                1L, 25L, "Follow-up consultation");
+    }
+
+    @Test
+    void bookAppointment_usesAuthenticatedPatientIdNotRequestIdentity() {
+        authenticate("patient@example.com", "PATIENT");
+
+        User patient = new User();
+        patient.setId(7L);
+        patient.setEmail("patient@example.com");
+
+        Appointment appointment = new Appointment();
+        appointment.setId(101L);
+
+        AppointmentBookingRequest request = new AppointmentBookingRequest();
+        request.setSlotId(30L);
+        request.setNotes("General consultation");
+
+        when(userRepository.findByEmail("patient@example.com"))
+                .thenReturn(Optional.of(patient));
+
+        when(appointmentService.bookAppointment(
+                7L, 30L, "General consultation"))
+                .thenReturn(appointment);
+
+        ResponseEntity<?> response =
+                appointmentController.bookAppointment(request);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        verify(appointmentService).bookAppointment(
+                eq(7L), eq(30L), eq("General consultation"));
+    }
+
+    @Test
+    void bookAppointment_whenAuthenticatedUserIsMissing_throwsException() {
+        authenticate("missing@example.com", "PATIENT");
+
+        AppointmentBookingRequest request = new AppointmentBookingRequest();
+        request.setSlotId(25L);
+        request.setNotes("Consultation");
+
+        when(userRepository.findByEmail("missing@example.com"))
+                .thenReturn(Optional.empty());
+
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> appointmentController.bookAppointment(request));
+
+        assertEquals("Patient not found!", exception.getMessage());
+
+        verify(appointmentService, never())
+                .bookAppointment(any(), any(), any());
+    }
+
 }
