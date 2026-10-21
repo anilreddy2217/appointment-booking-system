@@ -64,14 +64,25 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void runtimeExceptionReturns400() {
+    void unexpectedRuntimeExceptionReturns500WithoutExposingDetails() {
         ResponseEntity<Map<String, Object>> response =
                 handler.handleRuntimeException(
-                        new RuntimeException("Invalid request"));
+                        new RuntimeException("Database password leaked"));
 
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Invalid request", response.getBody().get("error"));
+        assertEquals(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                response.getStatusCode());
+        assertEquals(500, response.getBody().get("status"));
+        assertEquals(
+                "Something went wrong!",
+                response.getBody().get("error"));
+        assertEquals(
+                false,
+                response.getBody().get("error")
+                        .toString()
+                        .contains("Database password leaked"));
     }
+
 
 
     @Test
