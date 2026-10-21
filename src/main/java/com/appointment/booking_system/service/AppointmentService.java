@@ -1,5 +1,6 @@
 package com.appointment.booking_system.service;
 
+
 import com.appointment.booking_system.model.*;
 import com.appointment.booking_system.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,8 +66,10 @@ public class AppointmentService {
         return saved;
     }
 
+    @Transactional
     public Appointment cancelAppointment(Long appointmentId, Long patientId) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
+        Appointment appointment = appointmentRepository
+                .findByIdForUpdate(appointmentId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Appointment not found!"));
 
@@ -90,7 +93,6 @@ public class AppointmentService {
 
         Appointment saved = appointmentRepository.save(appointment);
 
-        // Send cancellation email
         emailService.sendCancellationEmail(
                 appointment.getPatient().getEmail(),
                 appointment.getPatient().getName(),

@@ -166,7 +166,7 @@ class AppointmentServiceTest {
         appointment.setStatus(AppointmentStatus.BOOKED);
         slot.setStatus(SlotStatus.BOOKED);
 
-        when(appointmentRepository.findById(50L))
+        when(appointmentRepository.findByIdForUpdate(50L))
                 .thenReturn(Optional.of(appointment));
         when(appointmentRepository.save(appointment)).thenReturn(appointment);
 
@@ -186,7 +186,8 @@ class AppointmentServiceTest {
 
     @Test
     void cancelAppointment_whenAppointmentMissing_throwsNotFound() {
-        when(appointmentRepository.findById(50L)).thenReturn(Optional.empty());
+        when(appointmentRepository.findByIdForUpdate(50L))
+                .thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
                 () -> appointmentService.cancelAppointment(50L, 1L));
@@ -202,7 +203,7 @@ class AppointmentServiceTest {
         appointment.setSlot(slot);
         appointment.setStatus(AppointmentStatus.BOOKED);
 
-        when(appointmentRepository.findById(50L))
+        when(appointmentRepository.findByIdForUpdate(50L))
                 .thenReturn(Optional.of(appointment));
 
         assertThrows(AppointmentForbiddenException.class,
@@ -220,7 +221,7 @@ class AppointmentServiceTest {
         appointment.setSlot(slot);
         appointment.setStatus(AppointmentStatus.CANCELLED);
 
-        when(appointmentRepository.findById(50L))
+        when(appointmentRepository.findByIdForUpdate(50L))
                 .thenReturn(Optional.of(appointment));
 
         assertThrows(IllegalStateException.class,
@@ -339,7 +340,7 @@ class AppointmentServiceTest {
         appointment.setSlot(slot);
         appointment.setStatus(AppointmentStatus.COMPLETED);
 
-        when(appointmentRepository.findById(50L))
+        when(appointmentRepository.findByIdForUpdate(50L))
                 .thenReturn(Optional.of(appointment));
 
         assertThrows(IllegalStateException.class,
@@ -349,8 +350,5 @@ class AppointmentServiceTest {
         verify(slotRepository, never()).save(any());
         verifyNoInteractions(emailService);
     }
-
-
-
 
 }
