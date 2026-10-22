@@ -1,6 +1,9 @@
 package com.appointment.booking_system.service;
 
 
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import com.appointment.booking_system.model.*;
 import com.appointment.booking_system.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +17,9 @@ import java.util.List;
 
 @Service
 public class AppointmentService {
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     @Autowired
     private AppointmentRepository appointmentRepository;
@@ -93,10 +99,16 @@ public class AppointmentService {
 
         Appointment saved = appointmentRepository.save(appointment);
 
-        emailService.sendCancellationEmail(
-                appointment.getPatient().getEmail(),
-                appointment.getPatient().getName(),
-                slot.getStartTime().toString()
+        String patientEmail = appointment.getPatient().getEmail();
+        String patientName = appointment.getPatient().getName();
+        String appointmentTime = slot.getStartTime().toString();
+
+        eventPublisher.publishEvent(
+                new AppointmentCancelledEvent(
+                        appointment.getPatient().getEmail(),
+                        appointment.getPatient().getName(),
+                        slot.getStartTime().toString()
+                )
         );
 
         return saved;
