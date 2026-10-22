@@ -1,6 +1,10 @@
 
 package com.appointment.booking_system.service;
 
+import com.appointment.booking_system.service.AppointmentCancelledEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 import com.appointment.booking_system.exception.AppointmentConflictException;
 import com.appointment.booking_system.exception.AppointmentForbiddenException;
 import com.appointment.booking_system.exception.ResourceNotFoundException;
@@ -25,6 +29,9 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AppointmentServiceTest {
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @Mock
     private AppointmentRepository appointmentRepository;
@@ -157,6 +164,7 @@ class AppointmentServiceTest {
         verifyNoInteractions(emailService);
     }
 
+
     @Test
     void cancelAppointment_whenBooked_cancelsAndReopensSlot() {
         Appointment appointment = new Appointment();
@@ -168,7 +176,8 @@ class AppointmentServiceTest {
 
         when(appointmentRepository.findByIdForUpdate(50L))
                 .thenReturn(Optional.of(appointment));
-        when(appointmentRepository.save(appointment)).thenReturn(appointment);
+        when(appointmentRepository.save(appointment))
+                .thenReturn(appointment);
 
         Appointment result = appointmentService.cancelAppointment(50L, 1L);
 
@@ -177,12 +186,30 @@ class AppointmentServiceTest {
 
         verify(slotRepository).save(slot);
         verify(appointmentRepository).save(appointment);
-        verify(emailService).sendCancellationEmail(
-                "patient@example.com",
-                "Test Patient",
-                slot.getStartTime().toString()
+
+        ArgumentCaptor<Object> eventCaptor =
+                ArgumentCaptor.forClass(Object.class);
+
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+
+        assertInstanceOf(
+                AppointmentCancelledEvent.class,
+                eventCaptor.getValue()
         );
+
+        AppointmentCancelledEvent event =
+                (AppointmentCancelledEvent) eventCaptor.getValue();
+
+        assertEquals("patient@example.com", event.patientEmail());
+        assertEquals("Test Patient", event.patientName());
+        assertEquals(
+                slot.getStartTime().toString(),
+                event.appointmentTime()
+        );
+
+        verifyNoInteractions(emailService);
     }
+
 
     @Test
     void cancelAppointment_whenAppointmentMissing_throwsNotFound() {
