@@ -1,6 +1,8 @@
 
 package com.appointment.booking_system.service;
 
+import com.appointment.booking_system.service.AppointmentBookedEvent;
+import org.mockito.ArgumentCaptor;
 import com.appointment.booking_system.service.AppointmentCancelledEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.mockito.ArgumentCaptor;
@@ -78,7 +80,7 @@ class AppointmentServiceTest {
     }
 
     @Test
-    void bookAppointment_whenSlotAvailable_savesAppointmentAndSendsEmail() {
+    void bookAppointment_whenSlotAvailable_savesAppointmentAndPublishesEvent() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(patient));
         when(slotRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(slot));
         when(appointmentRepository.findBySlotId(100L)).thenReturn(Optional.empty());
@@ -97,12 +99,21 @@ class AppointmentServiceTest {
 
         verify(slotRepository).save(slot);
         verify(appointmentRepository).save(result);
-        verify(emailService).sendBookingConfirmation(
-                "patient@example.com",
-                "Test Patient",
-                "Test Provider",
-                slot.getStartTime().toString()
-        );
+
+        ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+
+        assertInstanceOf(AppointmentBookedEvent.class, eventCaptor.getValue());
+
+        AppointmentBookedEvent event =
+                (AppointmentBookedEvent) eventCaptor.getValue();
+
+        assertEquals("patient@example.com", event.patientEmail());
+        assertEquals("Test Patient", event.patientName());
+        assertEquals("Test Provider", event.providerName());
+        assertEquals(slot.getStartTime().toString(), event.appointmentTime());
+
+        verifyNoInteractions(emailService);
     }
 
     @Test

@@ -61,11 +61,13 @@ public class AppointmentService {
         Appointment saved = appointmentRepository.save(appointment);
 
         // Send confirmation email
-        emailService.sendBookingConfirmation(
-                patient.getEmail(),
-                patient.getName(),
-                slot.getProvider().getUser().getName(),
-                slot.getStartTime().toString()
+        eventPublisher.publishEvent(
+                new AppointmentBookedEvent(
+                        patient.getEmail(),
+                        patient.getName(),
+                        slot.getProvider().getUser().getName(),
+                        slot.getStartTime().toString()
+                )
         );
 
 
