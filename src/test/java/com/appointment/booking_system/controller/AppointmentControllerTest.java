@@ -238,4 +238,19 @@ class AppointmentControllerTest {
         verifyNoInteractions(appointmentService);
     }
 
+    @Test
+    void cancelAppointment_whenAuthenticatedUserIsMissing_throwsNotFound() {
+        authenticate("missing@example.com", "PATIENT");
+
+        when(userRepository.findByEmail("missing@example.com"))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> appointmentController.cancelAppointment(25L)
+        );
+
+        verifyNoInteractions(appointmentService);
+    }
+
 }
