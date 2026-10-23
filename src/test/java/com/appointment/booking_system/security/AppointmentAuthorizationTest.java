@@ -9,6 +9,8 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 
@@ -64,7 +66,8 @@ class AppointmentAuthorizationTest {
 
     @Test
     void adminCanAccessAllAppointments() throws Exception {
-        when(appointmentService.getAllAppointments()).thenReturn(List.of());
+        when(appointmentService.getAllAppointments(PageRequest.of(0, 10)))
+                .thenReturn(Page.empty(PageRequest.of(0, 10)));
 
         String token = jwtUtil.generateToken(
                 "admin@example.com", "ADMIN", 3L);

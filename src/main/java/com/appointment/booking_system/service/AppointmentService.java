@@ -1,6 +1,7 @@
 package com.appointment.booking_system.service;
 
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -116,14 +117,15 @@ public class AppointmentService {
         return saved;
     }
 
-    public List<Appointment> getMyAppointments(Long patientId) {
-        return appointmentRepository.findByPatientId(patientId);
+    public Page<Appointment> getMyAppointments(Long patientId, Pageable pageable) {
+        return appointmentRepository.findByPatientId(patientId, pageable);
     }
 
-    public List<Appointment> getProviderAppointments(Long providerId) {
-        return appointmentRepository.findBySlotProviderId(providerId);
+    public Page<Appointment> getProviderAppointments(Long providerId, Pageable pageable) {
+        return appointmentRepository.findBySlotProviderId(providerId, pageable);
     }
-    public List<Appointment> getAllAppointments() {
-        return appointmentRepository.findAll();
+
+    public Page<Appointment> getAllAppointments(Pageable pageable) {
+        return appointmentRepository.findAll(pageable);
     }
 }

@@ -1,5 +1,10 @@
 package com.appointment.booking_system.controller;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.web.bind.annotation.RequestParam;
 import com.appointment.booking_system.exception.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -16,8 +21,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.appointment.booking_system.repository.AppointmentRepository;
 import com.appointment.booking_system.service.PdfService;
-
-
 import java.util.List;
 import java.util.Map;
 
@@ -87,7 +90,9 @@ public class AppointmentController {
     }
 
     @GetMapping("/my")
-    public ResponseEntity<List<Appointment>> getMyAppointments() {
+    public ResponseEntity<Page<Appointment>> getMyAppointments(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
@@ -95,19 +100,49 @@ public class AppointmentController {
         String email = authentication.getName();
 
         User patient = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Patient not found!"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Patient not found!"));
 
-        List<Appointment> appointments =
-                appointmentService.getMyAppointments(patient.getId());
+        Pageable pageable = createPageable(page, size);
 
-        return ResponseEntity.ok(appointments);
+        return ResponseEntity.ok(
+                appointmentService.getMyAppointments(patient.getId(), pageable));
     }
 
     @GetMapping("/provider/{providerId}")
-    public ResponseEntity<List<Appointment>> getProviderAppointments(@PathVariable Long providerId) {
-        List<Appointment> appointments = appointmentService.getProviderAppointments(providerId);
-        return ResponseEntity.ok(appointments);
+    public ResponseEntity<Page<Appointment>> getProviderAppointments(
+            @PathVariable Long providerId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = createPageable(page, size);
+
+        return ResponseEntity.ok(
+                appointmentService.getProviderAppointments(providerId, pageable));
     }
+
+    @GetMapping("/all")
+    public ResponseEntity<Page<Appointment>> getAllAppointments(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = createPageable(page, size);
+
+        return ResponseEntity.ok(
+                appointmentService.getAllAppointments(pageable));
+    }
+
+    private Pageable createPageable(int page, int size) {
+        if (page < 0 || size < 1 || size > 100) {
+            throw new IllegalArgumentException(
+                    "Page must be at least 0 and size must be between 1 and 100.");
+        }
+
+        return PageRequest.of(
+                page, size, Sort.by(Sort.Direction.DESC, "id"));
+    }
+
+
 
     @GetMapping("/receipt/{appointmentId}")
     public ResponseEntity<byte[]> downloadReceipt(
@@ -148,9 +183,5 @@ public class AppointmentController {
                 .body(pdf);
     }
 
-    @GetMapping("/all")
-    public ResponseEntity<List<Appointment>> getAllAppointments() {
-        List<Appointment> appointments = appointmentService.getAllAppointments();
-        return ResponseEntity.ok(appointments);
-    }
+
 }

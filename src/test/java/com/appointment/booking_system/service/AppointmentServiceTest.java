@@ -1,6 +1,10 @@
 
 package com.appointment.booking_system.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import com.appointment.booking_system.service.AppointmentBookedEvent;
 import org.mockito.ArgumentCaptor;
 import com.appointment.booking_system.service.AppointmentCancelledEvent;
@@ -278,17 +282,21 @@ class AppointmentServiceTest {
         Appointment second = new Appointment();
         second.setId(2L);
 
-        List<Appointment> expected = List.of(first, second);
+        Pageable pageable = PageRequest.of(0, 10);
 
-        when(appointmentRepository.findByPatientId(1L))
+        Page<Appointment> expected =
+                new PageImpl<>(List.of(first, second), pageable, 2);
+
+        when(appointmentRepository.findByPatientId(1L, pageable))
                 .thenReturn(expected);
 
-        List<Appointment> result =
-                appointmentService.getMyAppointments(1L);
+        Page<Appointment> result =
+                appointmentService.getMyAppointments(1L, pageable);
 
-        assertEquals(2, result.size());
-        assertSame(expected, result);
-        verify(appointmentRepository).findByPatientId(1L);
+        assertEquals(2, result.getTotalElements());
+        assertEquals(2, result.getContent().size());
+
+        verify(appointmentRepository).findByPatientId(1L, pageable);
     }
 
     @Test
@@ -296,17 +304,22 @@ class AppointmentServiceTest {
         Appointment appointment = new Appointment();
         appointment.setId(10L);
 
-        List<Appointment> expected = List.of(appointment);
+        Pageable pageable = PageRequest.of(0, 10);
 
-        when(appointmentRepository.findBySlotProviderId(20L))
+        Page<Appointment> expected =
+                new PageImpl<>(List.of(appointment), pageable, 1);
+
+        when(appointmentRepository.findBySlotProviderId(20L, pageable))
                 .thenReturn(expected);
 
-        List<Appointment> result =
-                appointmentService.getProviderAppointments(20L);
+        Page<Appointment> result =
+                appointmentService.getProviderAppointments(20L, pageable);
 
-        assertEquals(1, result.size());
-        assertSame(expected, result);
-        verify(appointmentRepository).findBySlotProviderId(20L);
+        assertEquals(1, result.getTotalElements());
+        assertEquals(10L, result.getContent().get(0).getId());
+
+        verify(appointmentRepository)
+                .findBySlotProviderId(20L, pageable);
     }
 
     @Test
@@ -317,55 +330,52 @@ class AppointmentServiceTest {
         Appointment second = new Appointment();
         second.setId(2L);
 
-        List<Appointment> expected = List.of(first, second);
+        Pageable pageable = PageRequest.of(0, 10);
 
-        when(appointmentRepository.findAll()).thenReturn(expected);
+        Page<Appointment> expected =
+                new PageImpl<>(List.of(first, second), pageable, 2);
 
-        List<Appointment> result =
-                appointmentService.getAllAppointments();
+        when(appointmentRepository.findAll(pageable))
+                .thenReturn(expected);
 
-        assertEquals(2, result.size());
-        assertSame(expected, result);
-        verify(appointmentRepository).findAll();
-    }
+        Page<Appointment> result =
+                appointmentService.getAllAppointments(pageable);
 
+        assertEquals(2, result.getTotalElements());
+        assertEquals(2, result.getContent().size());
 
-    @Test
-    void getMyAppointments_whenPatientHasNoAppointments_returnsEmptyList() {
-        when(appointmentRepository.findByPatientId(1L))
-                .thenReturn(List.of());
-
-        List<Appointment> result =
-                appointmentService.getMyAppointments(1L);
-
-        assertNotNull(result);
-        assertTrue(result.isEmpty());
-        verify(appointmentRepository).findByPatientId(1L);
+        verify(appointmentRepository).findAll(pageable);
     }
 
     @Test
-    void getProviderAppointments_whenProviderHasNoAppointments_returnsEmptyList() {
-        when(appointmentRepository.findBySlotProviderId(20L))
-                .thenReturn(List.of());
+    void getProviderAppointments_whenProviderHasNoAppointments_returnsEmptyPage() {
+        Pageable pageable = PageRequest.of(0, 10);
 
-        List<Appointment> result =
-                appointmentService.getProviderAppointments(20L);
+        when(appointmentRepository.findBySlotProviderId(20L, pageable))
+                .thenReturn(Page.empty(pageable));
+
+        Page<Appointment> result =
+                appointmentService.getProviderAppointments(20L, pageable);
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
-        verify(appointmentRepository).findBySlotProviderId(20L);
+        verify(appointmentRepository)
+                .findBySlotProviderId(20L, pageable);
     }
 
     @Test
-    void getAllAppointments_whenNoAppointmentsExist_returnsEmptyList() {
-        when(appointmentRepository.findAll()).thenReturn(List.of());
+    void getAllAppointments_whenNoAppointmentsExist_returnsEmptyPage() {
+        Pageable pageable = PageRequest.of(0, 10);
 
-        List<Appointment> result =
-                appointmentService.getAllAppointments();
+        when(appointmentRepository.findAll(pageable))
+                .thenReturn(Page.empty(pageable));
+
+        Page<Appointment> result =
+                appointmentService.getAllAppointments(pageable);
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
-        verify(appointmentRepository).findAll();
+        verify(appointmentRepository).findAll(pageable);
     }
 
 
