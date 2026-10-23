@@ -1,6 +1,7 @@
 
 package com.appointment.booking_system.controller;
 
+import com.appointment.booking_system.exception.ResourceNotFoundException;
 import com.appointment.booking_system.dto.AppointmentBookingRequest;
 import org.springframework.http.ResponseEntity;
 import com.appointment.booking_system.model.Appointment;
@@ -219,24 +220,22 @@ class AppointmentControllerTest {
     }
 
     @Test
-    void bookAppointment_whenAuthenticatedUserIsMissing_throwsException() {
+    void bookAppointment_whenAuthenticatedUserIsMissing_throwsNotFound() {
         authenticate("missing@example.com", "PATIENT");
+
+        when(userRepository.findByEmail("missing@example.com"))
+                .thenReturn(Optional.empty());
 
         AppointmentBookingRequest request = new AppointmentBookingRequest();
         request.setSlotId(25L);
         request.setNotes("Consultation");
 
-        when(userRepository.findByEmail("missing@example.com"))
-                .thenReturn(Optional.empty());
+        assertThrows(
+                com.appointment.booking_system.exception.ResourceNotFoundException.class,
+                () -> appointmentController.bookAppointment(request)
+        );
 
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> appointmentController.bookAppointment(request));
-
-        assertEquals("Patient not found!", exception.getMessage());
-
-        verify(appointmentService, never())
-                .bookAppointment(any(), any(), any());
+        verifyNoInteractions(appointmentService);
     }
 
 }

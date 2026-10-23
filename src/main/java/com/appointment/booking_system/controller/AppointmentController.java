@@ -1,5 +1,6 @@
 package com.appointment.booking_system.controller;
 
+import com.appointment.booking_system.exception.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import com.appointment.booking_system.dto.AppointmentBookingRequest;
@@ -48,7 +49,7 @@ public class AppointmentController {
         String email = authentication.getName();
 
         User patient = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Patient not found!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found!"));
 
         Appointment appointment = appointmentService.bookAppointment(
                 patient.getId(),
@@ -72,7 +73,7 @@ public class AppointmentController {
         String email = authentication.getName();
 
         User patient = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Patient not found!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found!"));
 
         Appointment appointment =
                 appointmentService.cancelAppointment(
@@ -94,7 +95,7 @@ public class AppointmentController {
         String email = authentication.getName();
 
         User patient = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Patient not found!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found!"));
 
         List<Appointment> appointments =
                 appointmentService.getMyAppointments(patient.getId());
