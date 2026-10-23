@@ -1,112 +1,96 @@
 
 package com.appointment.booking_system.exception;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class GlobalExceptionHandlerTest {
 
-    private GlobalExceptionHandler handler;
+    private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
 
-    @BeforeEach
-    void setUp() {
-        handler = new GlobalExceptionHandler();
+    @Test
+    void handleNotFound_returns404() {
+        var response = handler.handleNotFound(
+                new ResourceNotFoundException("Appointment not found"));
+
+        assertErrorResponse(response, HttpStatus.NOT_FOUND, "Appointment not found");
     }
 
     @Test
-    void resourceNotFoundReturns404() {
-        ResponseEntity<Map<String, Object>> response =
-                handler.handleNotFound(
-                        new ResourceNotFoundException("Slot not found"));
+    void handleConflict_returns409() {
+        var response = handler.handleConflict(
+                new AppointmentConflictException("Slot is not available"));
 
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertEquals("Slot not found", response.getBody().get("error"));
-        assertEquals(404, response.getBody().get("status"));
+        assertErrorResponse(response, HttpStatus.CONFLICT, "Slot is not available");
     }
 
     @Test
-    void appointmentConflictReturns409() {
-        ResponseEntity<Map<String, Object>> response =
-                handler.handleConflict(
-                        new AppointmentConflictException(
-                                "Slot is not available!"));
+    void handleForbidden_returns403() {
+        var response = handler.handleForbidden(
+                new AppointmentForbiddenException("Access denied"));
 
-        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-        assertEquals(409, response.getBody().get("status"));
+        assertErrorResponse(response, HttpStatus.FORBIDDEN, "Access denied");
     }
 
     @Test
-    void appointmentForbiddenReturns403() {
-        ResponseEntity<Map<String, Object>> response =
-                handler.handleForbidden(
-                        new AppointmentForbiddenException(
-                                "You are not authorized to cancel this appointment!"));
+    void handleIllegalState_returns409() {
+        var response = handler.handleIllegalState(
+                new IllegalStateException("Invalid appointment state"));
 
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
-        assertEquals(403, response.getBody().get("status"));
+        assertErrorResponse(
+                response, HttpStatus.CONFLICT, "Invalid appointment state");
     }
 
     @Test
-    void illegalStateReturns409() {
-        ResponseEntity<Map<String, Object>> response =
-                handler.handleIllegalState(
-                        new IllegalStateException(
-                                "Only booked appointments can be cancelled."));
+    void handleRuntimeException_hidesInternalDetails() {
+        var response = handler.handleRuntimeException(
+                new RuntimeException("Sensitive internal detail"));
 
-        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-        assertEquals(409, response.getBody().get("status"));
+        assertErrorResponse(
+                response, HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong!");
+        assertNotEquals("Sensitive internal detail", response.getBody().error());
     }
 
     @Test
-    void unexpectedRuntimeExceptionReturns500WithoutExposingDetails() {
-        ResponseEntity<Map<String, Object>> response =
-                handler.handleRuntimeException(
-                        new RuntimeException("Database password leaked"));
+    void handleException_hidesInternalDetails() {
+        var response = handler.handleException(
+                new Exception("Sensitive internal detail"));
 
-        assertEquals(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                response.getStatusCode());
-        assertEquals(500, response.getBody().get("status"));
-        assertEquals(
-                "Something went wrong!",
-                response.getBody().get("error"));
-        assertEquals(
-                false,
-                response.getBody().get("error")
-                        .toString()
-                        .contains("Database password leaked"));
+        assertErrorResponse(
+                response, HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong!");
     }
-
-
 
     @Test
-    void unexpectedExceptionReturns500WithoutExposingInternalDetails() {
-        ResponseEntity<Map<String, Object>> response =
-                handler.handleException(
-                        new Exception("Sensitive database connection details"));
+    void handleValidationException_returns400() {
+        MethodArgumentNotValidException exception =
+                mock(MethodArgumentNotValidException.class);
 
-        assertEquals(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                response.getStatusCode());
+        var bindingResult =
+                mock(org.springframework.validation.BindingResult.class);
 
-        assertEquals(500, response.getBody().get("status"));
-        assertEquals(
-                "Something went wrong!",
-                response.getBody().get("error"));
+        when(exception.getBindingResult()).thenReturn(bindingResult);
+        when(bindingResult.getFieldErrors()).thenReturn(java.util.List.of());
 
-        assertEquals(true, response.getBody().containsKey("timestamp"));
+        var response = handler.handleValidationException(exception);
 
-        assertEquals(
-                false,
-                response.getBody().get("error")
-                        .toString()
-                        .contains("Sensitive database connection details"));
+        assertErrorResponse(
+                response, HttpStatus.BAD_REQUEST, "Request validation failed");
     }
 
+    private void assertErrorResponse(
+            ResponseEntity<ApiErrorResponse> response,
+            HttpStatus expectedStatus,
+            String expectedMessage) {
+
+        assertEquals(expectedStatus, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertNotNull(response.getBody().timestamp());
+        assertEquals(expectedStatus.value(), response.getBody().status());
+        assertEquals(expectedMessage, response.getBody().error());
+    }
 }

@@ -1,57 +1,56 @@
 
 package com.appointment.booking_system.exception;
 
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private ResponseEntity<Map<String, Object>> buildErrorResponse(
+    private ResponseEntity<ApiErrorResponse> buildErrorResponse(
             HttpStatus status, String message) {
 
-        Map<String, Object> error = new HashMap<>();
-        error.put("timestamp", LocalDateTime.now());
-        error.put("error", message);
-        error.put("status", status.value());
+        ApiErrorResponse error = new ApiErrorResponse(
+                LocalDateTime.now(),
+                status.value(),
+                message
+        );
 
         return ResponseEntity.status(status).body(error);
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleNotFound(
+    public ResponseEntity<ApiErrorResponse> handleNotFound(
             ResourceNotFoundException ex) {
         return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler(AppointmentConflictException.class)
-    public ResponseEntity<Map<String, Object>> handleConflict(
+    public ResponseEntity<ApiErrorResponse> handleConflict(
             AppointmentConflictException ex) {
         return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     @ExceptionHandler(AppointmentForbiddenException.class)
-    public ResponseEntity<Map<String, Object>> handleForbidden(
+    public ResponseEntity<ApiErrorResponse> handleForbidden(
             AppointmentForbiddenException ex) {
         return buildErrorResponse(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
     @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalState(
+    public ResponseEntity<ApiErrorResponse> handleIllegalState(
             IllegalStateException ex) {
         return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, Object>> handleRuntimeException(
+    public ResponseEntity<ApiErrorResponse> handleRuntimeException(
             RuntimeException ex) {
         return buildErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
@@ -60,16 +59,15 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleException(Exception ex) {
+    public ResponseEntity<ApiErrorResponse> handleException(Exception ex) {
         return buildErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Something went wrong!"
         );
     }
 
-
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationException(
+    public ResponseEntity<ApiErrorResponse> handleValidationException(
             MethodArgumentNotValidException ex) {
 
         String message = ex.getBindingResult()
@@ -78,7 +76,10 @@ public class GlobalExceptionHandler {
                 .map(error -> error.getDefaultMessage())
                 .collect(Collectors.joining(", "));
 
+        if (message.isBlank()) {
+            message = "Request validation failed";
+        }
+
         return buildErrorResponse(HttpStatus.BAD_REQUEST, message);
     }
-
 }
