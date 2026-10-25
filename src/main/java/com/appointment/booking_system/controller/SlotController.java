@@ -1,5 +1,7 @@
+
 package com.appointment.booking_system.controller;
 
+import com.appointment.booking_system.dto.SlotResponse;
 import com.appointment.booking_system.model.Slot;
 import com.appointment.booking_system.service.SlotService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,32 +20,62 @@ public class SlotController {
     private SlotService slotService;
 
     @PostMapping("/create")
-    public ResponseEntity<?> createSlot(@RequestBody Map<String, String> request) {
+    public ResponseEntity<?> createSlot(
+            @RequestBody Map<String, String> request) {
+
         String email = request.get("email");
-        LocalDateTime startTime = LocalDateTime.parse(request.get("startTime"));
-        LocalDateTime endTime = LocalDateTime.parse(request.get("endTime"));
+        LocalDateTime startTime =
+                LocalDateTime.parse(request.get("startTime"));
+        LocalDateTime endTime =
+                LocalDateTime.parse(request.get("endTime"));
 
         Slot slot = slotService.createSlot(email, startTime, endTime);
-        return ResponseEntity.ok("Slot created successfully with ID: " + slot.getId());
+
+        return ResponseEntity.ok(
+                "Slot created successfully with ID: " + slot.getId()
+        );
     }
 
     @GetMapping("/available/{providerId}")
-    public ResponseEntity<List<Slot>> getAvailableSlots(@PathVariable Long providerId) {
-        List<Slot> slots = slotService.getAvailableSlots(providerId);
+    public ResponseEntity<List<SlotResponse>> getAvailableSlots(
+            @PathVariable Long providerId) {
+
+        List<SlotResponse> slots = slotService
+                .getAvailableSlots(providerId)
+                .stream()
+                .map(SlotResponse::from)
+                .toList();
+
         return ResponseEntity.ok(slots);
     }
 
     @GetMapping("/all/{providerId}")
-    public ResponseEntity<List<Slot>> getAllSlots(@PathVariable Long providerId) {
-        List<Slot> slots = slotService.getAllSlots(providerId);
+    public ResponseEntity<List<SlotResponse>> getAllSlots(
+            @PathVariable Long providerId) {
+
+        List<SlotResponse> slots = slotService
+                .getAllSlots(providerId)
+                .stream()
+                .map(SlotResponse::from)
+                .toList();
+
         return ResponseEntity.ok(slots);
     }
+
     @GetMapping("/filter/{providerId}")
-    public ResponseEntity<List<Slot>> getSlotsByDate(
+    public ResponseEntity<List<SlotResponse>> getSlotsByDate(
             @PathVariable Long providerId,
             @RequestParam String date) {
-        LocalDateTime dateTime = LocalDateTime.parse(date + "T00:00:00");
-        List<Slot> slots = slotService.getSlotsByDate(providerId, dateTime);
+
+        LocalDateTime dateTime =
+                LocalDateTime.parse(date + "T00:00:00");
+
+        List<SlotResponse> slots = slotService
+                .getSlotsByDate(providerId, dateTime)
+                .stream()
+                .map(SlotResponse::from)
+                .toList();
+
         return ResponseEntity.ok(slots);
     }
 }
