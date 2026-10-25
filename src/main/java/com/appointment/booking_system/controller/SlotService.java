@@ -42,7 +42,11 @@ public class SlotService {
     }
 
     public List<Slot> getAvailableSlots(Long providerId) {
-        return slotRepository.findByProviderIdAndStatus(providerId, SlotStatus.AVAILABLE);
+        return slotRepository.findByProviderIdAndStatusAndEndTimeAfter(
+                providerId,
+                SlotStatus.AVAILABLE,
+                LocalDateTime.now()
+        );
     }
 
     public List<Slot> getAllSlots(Long providerId) {

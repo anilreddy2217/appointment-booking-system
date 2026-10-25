@@ -1,5 +1,6 @@
 package com.appointment.booking_system.service;
 
+import java.time.LocalDateTime;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.context.ApplicationEventPublisher;
@@ -46,6 +47,13 @@ public class AppointmentService {
 
         if (slot.getStatus() != SlotStatus.AVAILABLE) {
             throw new AppointmentConflictException("Slot is not available!");
+        }
+
+        if (slot.getEndTime() == null
+                || !slot.getEndTime().isAfter(LocalDateTime.now())) {
+            throw new AppointmentConflictException(
+                    "This slot has expired and can no longer be booked."
+            );
         }
 
         Appointment appointment = appointmentRepository.findBySlotId(slotId)

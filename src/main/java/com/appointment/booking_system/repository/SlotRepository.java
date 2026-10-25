@@ -20,6 +20,12 @@ public interface SlotRepository extends JpaRepository<Slot, Long> {
 
     List<Slot> findByProviderIdAndStatus(Long providerId, SlotStatus status);
 
+    List<Slot> findByProviderIdAndStatusAndEndTimeAfter(
+            Long providerId,
+            SlotStatus status,
+            LocalDateTime currentTime
+    );
+
     List<Slot> findByProviderIdAndStartTimeBetween(Long providerId,
                                                    LocalDateTime start, LocalDateTime end);
 
