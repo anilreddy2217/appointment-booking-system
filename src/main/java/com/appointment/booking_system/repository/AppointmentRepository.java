@@ -10,6 +10,9 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import com.appointment.booking_system.model.AppointmentStatus;
+import java.time.LocalDateTime;
+import java.util.List;
 
 import java.util.Optional;
 
@@ -27,4 +30,18 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     Optional<Appointment> findByIdForUpdate(
             @Param("appointmentId") Long appointmentId
     );
+    @Query("""
+    SELECT a FROM Appointment a
+    JOIN FETCH a.patient
+    JOIN FETCH a.slot
+    WHERE a.status = :status
+      AND a.slot.startTime > :now
+      AND a.slot.startTime <= :reminderCutoff
+    """)
+    List<Appointment> findUpcomingAppointmentsForReminder(
+            @Param("status") AppointmentStatus status,
+            @Param("now") LocalDateTime now,
+            @Param("reminderCutoff") LocalDateTime reminderCutoff
+    );
+
 }
