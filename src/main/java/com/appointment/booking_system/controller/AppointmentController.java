@@ -26,6 +26,8 @@ import com.appointment.booking_system.dto.AppointmentStatusUpdateRequest;
 import com.appointment.booking_system.dto.AppointmentStatusHistoryResponse;
 import org.springframework.web.bind.annotation.PutMapping;
 import java.util.List;
+import com.appointment.booking_system.dto.AppointmentResponse;
+import java.util.stream.Collectors;
 
 
 @RestController
@@ -94,7 +96,7 @@ public class AppointmentController {
     }
 
     @GetMapping("/my")
-    public ResponseEntity<Page<Appointment>> getMyAppointments(
+    public ResponseEntity<Page<AppointmentResponse>> getMyAppointments(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
@@ -109,41 +111,55 @@ public class AppointmentController {
 
         Pageable pageable = createPageable(page, size);
 
-        return ResponseEntity.ok(
-                appointmentService.getMyAppointments(patient.getId(), pageable));
+        Page<AppointmentResponse> response =
+                appointmentService.getMyAppointments(patient.getId(), pageable)
+                        .map(AppointmentResponse::from);
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/provider/{providerId}")
-    public ResponseEntity<Page<Appointment>> getProviderAppointments(
+    public ResponseEntity<Page<AppointmentResponse>> getProviderAppointments(
             @PathVariable Long providerId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         Pageable pageable = createPageable(page, size);
 
-        return ResponseEntity.ok(
-                appointmentService.getProviderAppointments(providerId, pageable));
+        Page<AppointmentResponse> response =
+                appointmentService.getProviderAppointments(providerId, pageable)
+                        .map(AppointmentResponse::from);
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/all")
-    public ResponseEntity<Page<Appointment>> getAllAppointments(
+    public ResponseEntity<Page<AppointmentResponse>> getAllAppointments(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         Pageable pageable = createPageable(page, size);
 
-        return ResponseEntity.ok(
-                appointmentService.getAllAppointments(pageable));
+        Page<AppointmentResponse> response =
+                appointmentService.getAllAppointments(pageable)
+                        .map(AppointmentResponse::from);
+
+        return ResponseEntity.ok(response);
     }
+
 
     private Pageable createPageable(int page, int size) {
         if (page < 0 || size < 1 || size > 100) {
             throw new IllegalArgumentException(
-                    "Page must be at least 0 and size must be between 1 and 100.");
+                    "Page must be at least 0 and size must be between 1 and 100."
+            );
         }
 
         return PageRequest.of(
-                page, size, Sort.by(Sort.Direction.DESC, "id"));
+                page,
+                size,
+                Sort.by(Sort.Direction.DESC, "id")
+        );
     }
 
 
@@ -189,7 +205,7 @@ public class AppointmentController {
 
 
     @PutMapping("/{appointmentId}/status")
-    public ResponseEntity<Appointment> updateAppointmentStatus(
+    public ResponseEntity<AppointmentResponse> updateAppointmentStatus(
             @PathVariable Long appointmentId,
             @Valid @RequestBody AppointmentStatusUpdateRequest request,
             Authentication authentication) {
@@ -200,7 +216,7 @@ public class AppointmentController {
                 request.status()
         );
 
-        return ResponseEntity.ok(updated);
+        return ResponseEntity.ok(AppointmentResponse.from(updated));
     }
 
 
