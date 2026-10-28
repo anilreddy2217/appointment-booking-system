@@ -1,6 +1,8 @@
 package com.appointment.booking_system.service;
 
 import java.time.LocalDateTime;
+
+import com.appointment.booking_system.dto.AppointmentStatusHistoryResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.context.ApplicationEventPublisher;
@@ -14,11 +16,19 @@ import org.springframework.transaction.annotation.Transactional;
 import com.appointment.booking_system.exception.AppointmentConflictException;
 import com.appointment.booking_system.exception.AppointmentForbiddenException;
 import com.appointment.booking_system.exception.ResourceNotFoundException;
+import com.appointment.booking_system.repository.AppointmentStatusHistoryRepository;
+
 
 import java.util.List;
 
 @Service
 public class AppointmentService {
+
+    @Autowired
+    private AppointmentStatusHistoryRepository statusHistoryRepository;
+
+    @Autowired
+    private ProviderRepository providerRepository;
 
     @Autowired
     private ApplicationEventPublisher eventPublisher;
@@ -102,6 +112,8 @@ public class AppointmentService {
             );
         }
 
+        AppointmentStatus previousStatus = appointment.getStatus();
+
         appointment.setStatus(AppointmentStatus.CANCELLED);
 
         Slot slot = appointment.getSlot();
@@ -109,6 +121,13 @@ public class AppointmentService {
         slotRepository.save(slot);
 
         Appointment saved = appointmentRepository.save(appointment);
+
+        saveStatusHistory(
+                saved,
+                previousStatus,
+                AppointmentStatus.CANCELLED,
+                appointment.getPatient()
+        );
 
         String patientEmail = appointment.getPatient().getEmail();
         String patientName = appointment.getPatient().getName();
@@ -136,4 +155,145 @@ public class AppointmentService {
     public Page<Appointment> getAllAppointments(Pageable pageable) {
         return appointmentRepository.findAll(pageable);
     }
+
+
+
+    @Transactional
+    public Appointment updateAppointmentStatus(
+            Long appointmentId,
+            String providerEmail,
+            AppointmentStatus newStatus) {
+
+        if (newStatus != AppointmentStatus.COMPLETED
+                && newStatus != AppointmentStatus.MISSED) {
+            throw new IllegalArgumentException(
+                    "Providers can only mark appointments as COMPLETED or MISSED."
+            );
+        }
+
+        User providerUser = userRepository.findByEmail(providerEmail)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Provider user not found."));
+
+        if (providerUser.getRole() != Role.PROVIDER) {
+            throw new AppointmentForbiddenException(
+                    "Only providers can update appointment status."
+            );
+        }
+
+        Provider provider = providerRepository.findByUserId(providerUser.getId())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Provider profile not found."));
+
+        Appointment appointment = appointmentRepository
+                .findByIdForUpdate(appointmentId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Appointment not found."));
+
+        if (!appointment.getSlot().getProvider().getId()
+                .equals(provider.getId())) {
+            throw new AppointmentForbiddenException(
+                    "You are not authorized to update this appointment."
+            );
+        }
+
+        if (appointment.getStatus() != AppointmentStatus.BOOKED) {
+            throw new IllegalStateException(
+                    "Only booked appointments can be completed or marked missed."
+            );
+        }
+
+        LocalDateTime endTime = appointment.getSlot().getEndTime();
+
+        if (endTime == null || endTime.isAfter(LocalDateTime.now())) {
+            throw new IllegalStateException(
+                    "Appointment status can only be updated after its scheduled end time."
+            );
+        }
+
+        AppointmentStatus previousStatus = appointment.getStatus();
+        appointment.setStatus(newStatus);
+
+        Appointment savedAppointment = appointmentRepository.save(appointment);
+
+        saveStatusHistory(
+                savedAppointment,
+                previousStatus,
+                newStatus,
+                providerUser
+        );
+
+        return savedAppointment;
+    }
+
+    private void saveStatusHistory(
+            Appointment appointment,
+            AppointmentStatus previousStatus,
+            AppointmentStatus newStatus,
+            User changedBy) {
+
+        AppointmentStatusHistory history = new AppointmentStatusHistory();
+        history.setAppointment(appointment);
+        history.setPreviousStatus(previousStatus);
+        history.setNewStatus(newStatus);
+        history.setChangedBy(changedBy);
+
+        statusHistoryRepository.save(history);
+    }
+
+
+
+    @Transactional(readOnly = true)
+    public List<AppointmentStatusHistoryResponse> getAppointmentStatusHistory(
+            Long appointmentId,
+            String requesterEmail) {
+
+        User requester = userRepository.findByEmail(requesterEmail)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found."));
+
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Appointment not found."));
+
+        boolean authorized = false;
+
+        if (requester.getRole() == Role.ADMIN) {
+            authorized = true;
+
+        } else if (requester.getRole() == Role.PATIENT) {
+            authorized = appointment.getPatient().getId()
+                    .equals(requester.getId());
+
+        } else if (requester.getRole() == Role.PROVIDER) {
+            Provider provider = providerRepository
+                    .findByUserId(requester.getId())
+                    .orElseThrow(() ->
+                            new ResourceNotFoundException("Provider profile not found."));
+
+            authorized = appointment.getSlot().getProvider().getId()
+                    .equals(provider.getId());
+        }
+
+        if (!authorized) {
+            throw new AppointmentForbiddenException(
+                    "You are not authorized to view this appointment's history."
+            );
+        }
+
+        return statusHistoryRepository
+                .findByAppointmentIdOrderByChangedAtDesc(appointmentId)
+                .stream()
+                .map(history -> new AppointmentStatusHistoryResponse(
+                        history.getId(),
+                        history.getPreviousStatus(),
+                        history.getNewStatus(),
+                        history.getChangedBy().getId(),
+                        history.getChangedAt()
+                ))
+                .toList();
+    }
+
+
+
 }

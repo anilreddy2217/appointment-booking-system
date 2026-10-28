@@ -59,6 +59,8 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/appointments/all").hasRole("ADMIN")
 
+                        .requestMatchers("/api/appointments/*/status").hasRole("PROVIDER")
+
                         .requestMatchers("/api/appointments/provider/**").hasAnyRole("PROVIDER", "ADMIN")
 
                         .requestMatchers("/api/slots/create").hasAnyRole("PROVIDER", "ADMIN")

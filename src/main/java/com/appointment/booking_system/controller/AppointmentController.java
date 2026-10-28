@@ -1,5 +1,6 @@
 package com.appointment.booking_system.controller;
 
+import com.appointment.booking_system.dto.AppointmentStatusHistoryResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,8 +22,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.appointment.booking_system.repository.AppointmentRepository;
 import com.appointment.booking_system.service.PdfService;
+import com.appointment.booking_system.dto.AppointmentStatusUpdateRequest;
+import com.appointment.booking_system.dto.AppointmentStatusHistoryResponse;
+import org.springframework.web.bind.annotation.PutMapping;
 import java.util.List;
-import java.util.Map;
+
 
 @RestController
 @RequestMapping("/api/appointments")
@@ -182,6 +186,41 @@ public class AppointmentController {
                 .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
                 .body(pdf);
     }
+
+
+    @PutMapping("/{appointmentId}/status")
+    public ResponseEntity<Appointment> updateAppointmentStatus(
+            @PathVariable Long appointmentId,
+            @Valid @RequestBody AppointmentStatusUpdateRequest request,
+            Authentication authentication) {
+
+        Appointment updated = appointmentService.updateAppointmentStatus(
+                appointmentId,
+                authentication.getName(),
+                request.status()
+        );
+
+        return ResponseEntity.ok(updated);
+    }
+
+
+
+    @GetMapping("/{appointmentId}/history")
+    public ResponseEntity<List<AppointmentStatusHistoryResponse>> getAppointmentStatusHistory(
+            @PathVariable Long appointmentId,
+            Authentication authentication) {
+
+        List<AppointmentStatusHistoryResponse> history =
+                appointmentService.getAppointmentStatusHistory(
+                        appointmentId,
+                        authentication.getName()
+                );
+
+        return ResponseEntity.ok(history);
+    }
+
+
+
 
 
 }

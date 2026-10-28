@@ -1,6 +1,7 @@
 
 package com.appointment.booking_system.service;
 
+import com.appointment.booking_system.repository.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -15,9 +16,6 @@ import com.appointment.booking_system.exception.AppointmentConflictException;
 import com.appointment.booking_system.exception.AppointmentForbiddenException;
 import com.appointment.booking_system.exception.ResourceNotFoundException;
 import com.appointment.booking_system.model.*;
-import com.appointment.booking_system.repository.AppointmentRepository;
-import com.appointment.booking_system.repository.SlotRepository;
-import com.appointment.booking_system.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,6 +45,12 @@ class AppointmentServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private AppointmentStatusHistoryRepository statusHistoryRepository;
+
+    @Mock
+    private ProviderRepository providerRepository;
 
     @Mock
     private EmailService emailService;
@@ -398,5 +402,112 @@ class AppointmentServiceTest {
         verify(slotRepository, never()).save(any());
         verifyNoInteractions(emailService);
     }
+
+
+    @Test
+    void updateAppointmentStatus_whenBookedAndEnded_marksMissedAndSavesHistory() {
+        providerUser.setRole(Role.PROVIDER);
+
+        LocalDateTime pastEndTime = LocalDateTime.now().minusMinutes(30);
+        slot.setEndTime(pastEndTime);
+
+        Appointment appointment = new Appointment();
+        appointment.setId(36L);
+        appointment.setPatient(patient);
+        appointment.setSlot(slot);
+        appointment.setStatus(AppointmentStatus.BOOKED);
+
+        when(userRepository.findByEmail("provider@example.com"))
+                .thenReturn(Optional.of(providerUser));
+        when(providerRepository.findByUserId(2L))
+                .thenReturn(Optional.of(provider));
+        when(appointmentRepository.findByIdForUpdate(36L))
+                .thenReturn(Optional.of(appointment));
+        when(appointmentRepository.save(appointment))
+                .thenReturn(appointment);
+
+        Appointment result = appointmentService.updateAppointmentStatus(
+                36L, "provider@example.com", AppointmentStatus.MISSED);
+
+        assertEquals(AppointmentStatus.MISSED, result.getStatus());
+
+        ArgumentCaptor<AppointmentStatusHistory> historyCaptor =
+                ArgumentCaptor.forClass(AppointmentStatusHistory.class);
+
+        verify(statusHistoryRepository).save(historyCaptor.capture());
+
+        AppointmentStatusHistory history = historyCaptor.getValue();
+        assertSame(appointment, history.getAppointment());
+        assertEquals(AppointmentStatus.BOOKED, history.getPreviousStatus());
+        assertEquals(AppointmentStatus.MISSED, history.getNewStatus());
+        assertSame(providerUser, history.getChangedBy());
+    }
+
+    @Test
+    void updateAppointmentStatus_whenCancelled_throwsIllegalState() {
+        providerUser.setRole(Role.PROVIDER);
+
+        slot.setEndTime(LocalDateTime.now().minusMinutes(30));
+
+        Appointment appointment = new Appointment();
+        appointment.setId(36L);
+        appointment.setPatient(patient);
+        appointment.setSlot(slot);
+        appointment.setStatus(AppointmentStatus.CANCELLED);
+
+        when(userRepository.findByEmail("provider@example.com"))
+                .thenReturn(Optional.of(providerUser));
+        when(providerRepository.findByUserId(2L))
+                .thenReturn(Optional.of(provider));
+        when(appointmentRepository.findByIdForUpdate(36L))
+                .thenReturn(Optional.of(appointment));
+
+        assertThrows(IllegalStateException.class,
+                () -> appointmentService.updateAppointmentStatus(
+                        36L, "provider@example.com", AppointmentStatus.MISSED));
+
+        verify(appointmentRepository, never()).save(any());
+        verify(statusHistoryRepository, never()).save(any());
+    }
+
+    @Test
+    void updateAppointmentStatus_whenAnotherProviderOwnsAppointment_throwsForbidden() {
+        providerUser.setRole(Role.PROVIDER);
+
+        User anotherProviderUser = new User();
+        anotherProviderUser.setId(3L);
+        anotherProviderUser.setEmail("another-provider@example.com");
+        anotherProviderUser.setRole(Role.PROVIDER);
+
+        Provider anotherProvider = new Provider();
+        anotherProvider.setId(20L);
+        anotherProvider.setUser(anotherProviderUser);
+
+        Slot anotherSlot = new Slot();
+        anotherSlot.setId(200L);
+        anotherSlot.setProvider(anotherProvider);
+        anotherSlot.setEndTime(LocalDateTime.now().minusMinutes(30));
+
+        Appointment appointment = new Appointment();
+        appointment.setId(36L);
+        appointment.setPatient(patient);
+        appointment.setSlot(anotherSlot);
+        appointment.setStatus(AppointmentStatus.BOOKED);
+
+        when(userRepository.findByEmail("provider@example.com"))
+                .thenReturn(Optional.of(providerUser));
+        when(providerRepository.findByUserId(2L))
+                .thenReturn(Optional.of(provider));
+        when(appointmentRepository.findByIdForUpdate(36L))
+                .thenReturn(Optional.of(appointment));
+
+        assertThrows(AppointmentForbiddenException.class,
+                () -> appointmentService.updateAppointmentStatus(
+                        36L, "provider@example.com", AppointmentStatus.MISSED));
+
+        verify(appointmentRepository, never()).save(any());
+        verify(statusHistoryRepository, never()).save(any());
+    }
+
 
 }
