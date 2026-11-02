@@ -82,8 +82,8 @@ class AppointmentServiceTest {
         slot = new Slot();
         slot.setId(100L);
         slot.setProvider(provider);
-        slot.setStartTime(LocalDateTime.of(2026, 11, 1, 10, 0));
-        slot.setEndTime(LocalDateTime.of(2026, 11, 1, 10, 30));
+        slot.setStartTime(LocalDateTime.now().plusDays(1));
+        slot.setEndTime(LocalDateTime.now().plusDays(1).plusMinutes(30));
         slot.setStatus(SlotStatus.AVAILABLE);
     }
 
