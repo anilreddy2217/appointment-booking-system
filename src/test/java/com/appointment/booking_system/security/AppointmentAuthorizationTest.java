@@ -14,8 +14,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.data.domain.Pageable;
-import java.util.List;
-
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -76,5 +74,34 @@ class AppointmentAuthorizationTest {
         mockMvc.perform(get("/api/appointments/all")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void unauthenticatedUserCannotAccessAdminAnalytics() throws Exception {
+
+        mockMvc.perform(get("/api/admin/analytics/summary"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void patientCannotAccessAdminAnalytics() throws Exception {
+
+        String token = jwtUtil.generateToken(
+                "patient@example.com", "PATIENT", 1L);
+
+        mockMvc.perform(get("/api/admin/analytics/summary")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void providerCannotAccessAdminAnalytics() throws Exception {
+
+        String token = jwtUtil.generateToken(
+                "provider@example.com", "PROVIDER", 2L);
+
+        mockMvc.perform(get("/api/admin/analytics/summary")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
     }
 }
