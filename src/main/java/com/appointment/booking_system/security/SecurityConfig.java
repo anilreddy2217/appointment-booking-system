@@ -92,8 +92,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/appointments/*/status")
                         .hasRole("PROVIDER")
 
-                        .requestMatchers("/api/appointments/provider/**")
+                        .requestMatchers("/api/appointments/provider/my")
                         .hasAnyRole("PROVIDER", "ADMIN")
+
+                        .requestMatchers("/api/appointments/provider/*")
+                        .hasRole("ADMIN")
 
                         .requestMatchers("/api/slots/create")
                         .hasAnyRole("PROVIDER", "ADMIN")

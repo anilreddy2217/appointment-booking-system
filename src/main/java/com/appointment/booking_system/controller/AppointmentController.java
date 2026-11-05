@@ -1,6 +1,7 @@
 package com.appointment.booking_system.controller;
 
 import com.appointment.booking_system.dto.AppointmentStatusHistoryResponse;
+import com.appointment.booking_system.model.Provider;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +27,7 @@ import com.appointment.booking_system.dto.AppointmentStatusUpdateRequest;
 import com.appointment.booking_system.dto.AppointmentStatusHistoryResponse;
 import org.springframework.web.bind.annotation.PutMapping;
 import java.util.List;
+import com.appointment.booking_system.repository.ProviderRepository;
 import com.appointment.booking_system.dto.AppointmentResponse;
 import java.util.stream.Collectors;
 
@@ -45,6 +47,9 @@ public class AppointmentController {
 
     @Autowired
     private AppointmentService appointmentService;
+
+    @Autowired
+    private ProviderRepository providerRepository;
 
 
 
@@ -128,6 +133,32 @@ public class AppointmentController {
 
         Page<AppointmentResponse> response =
                 appointmentService.getProviderAppointments(providerId, pageable)
+                        .map(AppointmentResponse::from);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/provider/my")
+    public ResponseEntity<Page<AppointmentResponse>> getMyProviderAppointments(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        String email = authentication.getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found"));
+
+        Provider provider = providerRepository.findByUserId(user.getId())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Provider profile not found"));
+
+        Pageable pageable = createPageable(page, size);
+
+        Page<AppointmentResponse> response =
+                appointmentService.getProviderAppointments(
+                                provider.getId(), pageable)
                         .map(AppointmentResponse::from);
 
         return ResponseEntity.ok(response);
